@@ -266,10 +266,10 @@ export class Game {
   }
 
   makeEnemy(a) {
-    const dims = a[0] === 'wisp' ? [34, 86] : a[0] === 'golem' ? [32, 64] : [32, 58];
+    const dims = a[0] === 'wisp' ? [34, 86] : a[0] === 'golem' ? [32, 64] : a[0] === 'crawler' ? [36, 56] : [32, 58];
     return {
       type: a[0], x: a[1], y: a[2], w: dims[0], h: dims[1], vx: a[3],
-      min: a[4], max: a[5], hp: a[6], hit: 0, shoot: 1.4 + Math.random(), slow: 0,
+      min: a[4], max: a[5], hp: a[6], hit: 0, shoot: 1.4 + Math.random(), slow: 0, fuse: 0,
     };
   }
 
@@ -466,10 +466,7 @@ export class Game {
 
   // ───────────────────────────── обновление ─────────────────────────────────
   update(dt) {
-    if (this.state !== 'playing') {
-      if (this.state === 'menu') this.updateAmbientSims(dt);
-      return;
-    }
+    if (this.state !== 'playing') return;
     if (this.hitStop > 0) { this.hitStop -= dt; return; }
     this.time += dt;
     const L = LEVELS[this.levelIndex];
@@ -739,6 +736,27 @@ export class Game {
           });
         }
       }
+      if (e.type === 'crawler') {
+        const dx = (p.x + p.w / 2) - (e.x + e.w / 2);
+        const adx = Math.abs(dx);
+        const dy = Math.abs((p.y + p.h / 2) - (e.y + e.h / 2));
+        if (e.fuse > 0) {
+          // фитиль горит: стоит, мигает, потом взрыв
+          e.fuse -= dt;
+          e.vx = 0;
+          if (e.fuse <= 0) {
+            e.hp = 0;
+            const cx = e.x + e.w / 2, cy = e.y + e.h / 2;
+            this.explode(cx, cy);
+            if (Math.hypot(p.x + p.w / 2 - cx, p.y + p.h / 2 - cy) < 115) this.hurt(e.x);
+          }
+        } else if (adx < 175 && dy < 95) {
+          e.vx = Math.sign(dx || 1) * 78;   // учуял героя — идёт на него
+          if (adx < 54) { e.fuse = 0.75; sfx('fuse'); }
+        } else if (Math.abs(e.vx) > 60 || e.vx === 0) {
+          e.vx = (e.vx >= 0 ? 1 : -1) * 34; // обычный патруль
+        }
+      }
       if (this.rects(p, e)) this.hurt(e.x);
     }
 
@@ -819,19 +837,6 @@ export class Game {
     }
     this.updateSims(dt);
     this.updateHud();
-  }
-
-  /** Фоновая симуляция в меню — красивый дым за интерфейсом. */
-  updateAmbientSims(dt) {
-    this.time += dt;
-    if (settings.fluid) {
-      for (let i = 0; i < 3; i++) {
-        const x = 160 + i * 320 + Math.sin(this.time * 0.6 + i) * 60;
-        this.fluid.addDensity(x, H - 20, 0.35 + i * 0.2, 0.9, 0.95, 0.9, 3);
-        this.fluid.addVelocity(x, H - 20, Math.sin(this.time + i) * 30, -120, 2);
-      }
-      this.fluid.step(dt);
-    }
   }
 
   /** Эмиттеры среды + шаги решателей. */
@@ -923,6 +928,13 @@ export class Game {
     const ctx = this.ctx;
     const L = LEVELS[this.levelIndex];
     ctx.save();
+    if (this.state === 'menu') {
+      // стартовое меню как в оригинале: тёплое дневное небо с медленной панорамой
+      drawBackground(ctx, LEVELS[0], 0, this.menuCam || 0, this.time);
+      ctx.restore();
+      if (this.showDiag) this.drawDiag();
+      return;
+    }
     ctx.translate((Math.random() - 0.5) * this.shake, (Math.random() - 0.5) * this.shake);
 
     drawBackground(ctx, L, this.levelIndex, this.camera, this.time);
@@ -955,7 +967,6 @@ export class Game {
     ctx.globalAlpha = 1;
     ctx.restore();
 
-    if (this.state === 'menu') this.drawMenuScene();
     if (this.showDiag) this.drawDiag();
   }
 
@@ -1064,7 +1075,7 @@ export class Game {
     if (e.hit > 0) ctx.globalAlpha = 0.5;
     ctx.translate(Math.round(x), Math.round(e.y));
     if (e.vx < 0) { ctx.translate(e.w, 0); ctx.scale(-1, 1); }
-    (CREATURES[e.type] || CREATURES.shroomer)(ctx, e.w, e.h, this.time + e.x);
+    (CREATURES[e.type] || CREATURES.shroomer)(ctx, e.w, e.h, this.time + e.x, e.fuse || 0);
     ctx.restore();
   }
 
@@ -1215,19 +1226,6 @@ export class Game {
     ctx.restore();
   }
 
-  drawMenuScene() {
-    const ctx = this.ctx;
-    for (let i = 0; i < 7; i++) {
-      const x = 54 + i * 150;
-      const y = 380 + Math.sin(this.time * 1.5 + i) * 14;
-      const img = crystal(i % 2 ? '#65ead8' : '#ffc85c', 22, 34);
-      ctx.save();
-      ctx.globalAlpha = 0.5;
-      ctx.drawImage(img, x, y);
-      ctx.restore();
-    }
-  }
-
   drawDiag() {
     const f = this.fluid;
     const lines = [
@@ -1268,7 +1266,7 @@ export class Game {
     const dt = Math.min(0.033, (now - this.last) / 1000 || 0);
     this.last = now;
     this.fps = this.fps * 0.92 + (1 / Math.max(dt, 1e-4)) * 0.08;
-    if (this.state === 'menu') this.time += dt;
+    if (this.state === 'menu') { this.time += dt; this.menuCam = (this.menuCam || 0) + dt * 26; }
     this.autoQuality(dt);
     this.update(dt);
     this.render();

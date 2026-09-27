@@ -12,10 +12,10 @@
     body{min-height:100dvh;display:grid;place-items:center;background:#0a141f;touch-action:none;overscroll-behavior:none}
     .game-shell{position:relative;width:min(100vw,1180px);height:min(100dvh,760px);min-height:420px;overflow:hidden;background:#04080c;box-shadow:0 0 0 1px #172b3a,0 30px 90px #0009;isolation:isolate}
     canvas{position:absolute;inset:0;width:100%;height:100%;display:block;image-rendering:pixelated;background:#04080c}
-    .screen{position:absolute;inset:0;display:grid;place-items:center;padding:clamp(18px,4vw,54px);background:linear-gradient(#0b2740c9,#04090ded);transition:opacity .42s ease,filter .42s ease;z-index:10}
+    .screen{position:absolute;inset:0;display:grid;place-items:center;padding:clamp(18px,4vw,54px);background:linear-gradient(#0e2a4440,#04090db8);transition:opacity .42s ease,filter .42s ease;z-index:10}
     .screen.hidden{opacity:0;filter:brightness(.55);pointer-events:none}
     .menu-card{width:min(820px,100%);text-align:center;filter:drop-shadow(0 4px 0 #0006)}
-    .eyebrow{font:10px/1.5 ui-monospace,monospace;color:#66dfd1;letter-spacing:.24em;margin:0 0 18px}
+    .eyebrow{font:10px/1.5 ui-monospace,monospace;color:#0f766e;letter-spacing:.24em;margin:0 0 18px}
     .logo{font:clamp(40px,8vw,88px)/.84 'Russo One',system-ui,sans-serif;text-transform:uppercase;letter-spacing:-.045em;margin:0;text-shadow:0 4px 0 #0b141a}
     .logo span{display:block;color:#7bf1df}
     .logo em{display:block;font-size:.34em;font-style:normal;color:#ffd36a;letter-spacing:.12em;margin-top:10px}
@@ -113,12 +113,10 @@
 
     <section class="screen" id="menu">
       <div class="menu-card">
-        <p class="eyebrow">ПИКСЕЛЬНОЕ ПРИКЛЮЧЕНИЕ + ФИЗИКА СПЛОШНЫХ СРЕД</p>
-        <h1 class="logo">Crystal<span>Depths</span><em>FX Edition</em></h1>
-        <p class="subtitle">Навье–Стокс для дыма и пара · SPH-слизь с когезией и адгезией ·
-          мягкие тела Верле · диффузионный свет · полностью процедурный пиксель-арт</p>
+        <p class="eyebrow">ПИКСЕЛЬНОЕ ПРИКЛЮЧЕНИЕ</p>
+        <h1 class="logo">Crystal Depths<em>ТРИ УРОВНЯ · ТРИ СИЛЫ</em></h1>
         <div class="menu-actions">
-          <button class="pixel-btn" id="startBtn" type="button">НАЧАТЬ СПУСК</button>
+          <button class="pixel-btn" id="startBtn" type="button">ИГРАТЬ</button>
           <button class="pixel-btn secondary" id="continueBtn" type="button">ПРОДОЛЖИТЬ</button>
           <button class="pixel-btn secondary" id="howBtn" type="button">КАК ИГРАТЬ</button>
           <button class="pixel-btn secondary" id="settingsBtn" type="button">ФИЗИКА И ГРАФИКА</button>

@@ -1,46 +1,43 @@
-// Оригинальный герой «Кристальных глубин» — юный рудокоп Кир.
+// Оригинальный герой «Кристальных глубин» — блочный авантюрист.
 // Процедурный пиксель-арт 26×38 (лицом вправо; отражение делает вызывающий код).
-// Кадры: idle0/idle1 (моргание), walk0..walk3, jump.
+// Свой дизайн: тёмно-каштановые волосы, бирюзово-синяя рубаха, пояс с сумкой
+// для осколков. Кадры: idle0/idle1 (моргание), walk0..walk3, jump.
 
 const R = (ctx, x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(x | 0, y | 0, w, h); };
 
-const HELM = '#e8a33d', HELM_D = '#b57a26', HELM_L = '#ffd97a';
+const HAIR = '#6b4423', HAIR_D = '#4a2d17', HAIR_L = '#8a5a30';
 const SKIN = '#f2c194', SKIN_D = '#d69a6b';
-const JACK = '#2f8f86', JACK_D = '#1f6b65', JACK_L = '#4fc4b8';
-const PANTS = '#4a3b2e', PANTS_L = '#54432f', BOOT = '#2e2318';
-const LAMP = '#ffe680';
+const SHIRT = '#2fa8c9', SHIRT_D = '#1e7f99', SHIRT_L = '#79d8ec';
+const PANTS = '#2c3d8f', PANTS_L = '#3d51a8', BOOT = '#22283a';
+const BELT = '#5a3a22', BUCKLE = '#ffd97a';
 
 function head(ctx, blink) {
-  // каска
-  R(ctx, 7, 1, 12, 3, HELM);
-  R(ctx, 5, 4, 16, 3, HELM);
-  R(ctx, 4, 7, 18, 2, HELM_D);
-  R(ctx, 8, 2, 4, 2, HELM_L);
-  // налобный фонарь
-  R(ctx, 16, 3, 5, 5, '#5a4a20');
-  R(ctx, 17, 4, 3, 3, LAMP);
-  R(ctx, 18, 4, 1, 2, '#ffffff');
+  // блочная голова, волосы с бакенбардами
+  R(ctx, 6, 1, 14, 3, HAIR);
+  R(ctx, 6, 4, 14, 2, HAIR_L);
+  R(ctx, 6, 6, 2, 5, HAIR_D);          // бакенбард
+  R(ctx, 18, 6, 2, 5, HAIR_D);
   // лицо
-  R(ctx, 7, 9, 12, 6, SKIN);
-  R(ctx, 7, 13, 12, 2, SKIN_D);
-  if (blink) R(ctx, 14, 11, 3, 1, '#1d2733');
-  else R(ctx, 14, 10, 2, 3, '#1d2733');
-  R(ctx, 18, 12, 1, 1, SKIN_D);          // нос
-  R(ctx, 11, 15, 4, 2, SKIN_D);          // шея
+  R(ctx, 8, 6, 10, 7, SKIN);
+  R(ctx, 8, 11, 10, 2, SKIN_D);
+  if (blink) R(ctx, 10, 8, 6, 1, '#1d2733');
+  else { R(ctx, 10, 8, 2, 3, '#241a10'); R(ctx, 15, 8, 2, 3, '#241a10'); }
+  R(ctx, 13, 11, 1, 1, SKIN_D);        // нос
+  R(ctx, 11, 13, 4, 1, '#b57a52');     // рот
 }
 
 function torso(ctx) {
-  R(ctx, 6, 17, 14, 7, JACK);
-  R(ctx, 6, 17, 3, 7, JACK_D);
-  R(ctx, 16, 17, 2, 7, JACK_L);
-  R(ctx, 6, 24, 14, 2, '#3a2c1e');       // ремень
-  R(ctx, 11, 24, 3, 2, LAMP);            // пряжка
-  // рюкзак с осколком кристалла
-  R(ctx, 2, 18, 4, 8, '#6b4a2f');
-  R(ctx, 2, 18, 4, 2, '#7d5838');
-  R(ctx, 6, 19, 1, 6, '#3a2c1e');        // лямка
-  R(ctx, 3, 13, 2, 6, '#65ead8');        // кристалл
-  R(ctx, 3, 13, 1, 6, '#d7fff7');
+  R(ctx, 6, 15, 14, 8, SHIRT);
+  R(ctx, 6, 15, 3, 8, SHIRT_D);
+  R(ctx, 17, 15, 3, 8, SHIRT_L);
+  R(ctx, 10, 15, 2, 8, SHIRT_D);       // складка
+  // пояс с сумкой для осколков
+  R(ctx, 6, 23, 14, 3, BELT);
+  R(ctx, 12, 23, 3, 3, BUCKLE);
+  R(ctx, 3, 20, 4, 7, '#7d5838');       // сумка
+  R(ctx, 3, 20, 4, 2, '#8f6c46');
+  R(ctx, 4, 17, 2, 4, '#65ead8');       // осколок в сумке
+  R(ctx, 4, 17, 1, 4, '#d7fff7');
 }
 
 function legs(ctx, fdx, bdx, tuck) {
@@ -60,11 +57,11 @@ function legs(ctx, fdx, bdx, tuck) {
 }
 
 function arms(ctx, fdx, bdx, up) {
-  const fy = up ? 14 : 18;
-  R(ctx, 3 + bdx, 18, 3, 7, JACK_D);     // задняя рука
-  R(ctx, 3 + bdx, 25, 3, 3, SKIN);
-  R(ctx, 20 + fdx, fy, 3, 7, JACK);      // передняя рука
-  R(ctx, 20 + fdx, fy + 7, 3, 3, SKIN);
+  const fy = up ? 13 : 16;
+  R(ctx, 3 + bdx, 16, 3, 6, SHIRT_D);   // задняя рука (рукав)
+  R(ctx, 3 + bdx, 22, 3, 4, SKIN);      // кисть
+  R(ctx, 20 + fdx, fy, 3, 6, SHIRT);    // передняя рука
+  R(ctx, 20 + fdx, fy + 6, 3, 4, SKIN);
 }
 
 /** Рисует героя в боксе w×h. frame: 'idle0'|'idle1'|'walk0'..'walk3'|'jump'. */

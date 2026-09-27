@@ -159,9 +159,47 @@ export function drawMole(ctx, w, h, t) {
   R(ctx, w - 20, 22, 3, 3, '#1d2733');          // глаз
 }
 
+/** Моховой ползун — коренастый зелёный зверь с кристаллами на спине.
+ *  Идёт на героя и, подобравшись вплотную, вспыхивает и взрывается.
+ *  Оригинальный дизайн: приземистое тело, круглые янтарные глаза. */
+export function drawCrawler(ctx, w, h, t, fuse = 0) {
+  const cx = w / 2;
+  const step = Math.sin(t * 8) * 2.5;
+  // ноги-коротышки
+  R(ctx, cx - 13, 44, 6, 10 + step, '#3d6b2f');
+  R(ctx, cx + 7, 44, 6, 10 - step, '#3d6b2f');
+  R(ctx, cx - 14, 52 + step, 8, 3, '#2c4f22');
+  R(ctx, cx + 6, 52 - step, 8, 3, '#2c4f22');
+  // приземистое тело
+  R(ctx, cx - 15, 22, 30, 24, '#4c9c4a');
+  R(ctx, cx - 15, 22, 7, 24, '#3a7d38');
+  R(ctx, cx + 9, 22, 6, 24, '#63bd58');
+  R(ctx, cx - 11, 40, 22, 6, '#3a7d38');        // брюхо
+  // мох и трещины
+  R(ctx, cx - 8, 26, 5, 8, '#63bd58');
+  R(ctx, cx + 4, 32, 4, 10, '#2c4f22');
+  // кристаллы-шипы на спине
+  R(ctx, cx - 11, 12, 5, 12, '#65ead8');
+  R(ctx, cx - 11, 12, 2, 12, '#d7fff7');
+  R(ctx, cx - 2, 8, 6, 16, '#7bf1df');
+  R(ctx, cx - 2, 8, 2, 16, '#eafffb');
+  R(ctx, cx + 6, 13, 4, 11, '#65ead8');
+  // морда: круглые янтарные глаза и короткий рот
+  R(ctx, cx + 5, 28, 7, 7, '#e8dcc0');
+  R(ctx, cx + 7, 30, 3, 3, '#d8912a');
+  R(ctx, cx + 11, 38, 4, 2, '#2c4f22');
+  // фитиль: белое мигание перед взрывом
+  if (fuse > 0) {
+    ctx.globalAlpha = 0.35 + 0.35 * Math.sin(t * 30);
+    R(ctx, 0, 0, w, h, '#ffffff');
+    ctx.globalAlpha = 1;
+  }
+}
+
 export const CREATURES = {
   mite: drawMite,
   shroomer: drawShroomer,
   golem: drawGolem,
   wisp: drawWisp,
+  crawler: drawCrawler,
 };
