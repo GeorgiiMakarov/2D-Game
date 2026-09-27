@@ -46,3 +46,13 @@ playtesting-style iterations (sprite fixes, balance, game-feel polish).
 ## License
 
 MIT — free to use, modify and share.
+
+## Crystal Depths FX — physics rebuild
+
+The `crystal-depths-fx` branch contains an independent rebuild of this game as a
+modular Vite project: the same 3 levels, gems, pickaxe, mobs and portal, plus
+four physics simulations layered on top of the 2D gameplay — Navier–Stokes
+smoke/steam (Stable Fluids + vorticity confinement), SPH slime with cohesion and
+wall adhesion (throw with **S**, slows enemies, enables slime wall-jumps),
+Verlet soft-body slime enemies, and diffusion-based colored lighting + bloom.
+Each simulation can be toggled in the in-game «ФИЗИКА» menu (F2), metrics on F3.
