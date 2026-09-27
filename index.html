@@ -14,9 +14,9 @@
     canvas{position:absolute;inset:0;width:100%;height:100%;display:block;image-rendering:pixelated;background:#04080c}
     .screen{position:absolute;inset:0;display:grid;place-items:center;padding:clamp(18px,4vw,54px);background:linear-gradient(#0b2740c9,#04090ded);transition:opacity .42s ease,filter .42s ease;z-index:10}
     .screen.hidden{opacity:0;filter:brightness(.55);pointer-events:none}
-    .menu-card{width:min(820px,100%);text-align:center;filter:drop-shadow(0 8px 0 #0008)}
+    .menu-card{width:min(820px,100%);text-align:center;filter:drop-shadow(0 4px 0 #0006)}
     .eyebrow{font:10px/1.5 ui-monospace,monospace;color:#66dfd1;letter-spacing:.24em;margin:0 0 18px}
-    .logo{font:clamp(40px,8vw,88px)/.84 'Russo One',system-ui,sans-serif;text-transform:uppercase;letter-spacing:-.045em;margin:0;text-shadow:0 5px 0 #213c49,0 10px 0 #0b141a}
+    .logo{font:clamp(40px,8vw,88px)/.84 'Russo One',system-ui,sans-serif;text-transform:uppercase;letter-spacing:-.045em;margin:0;text-shadow:0 4px 0 #0b141a}
     .logo span{display:block;color:#7bf1df}
     .logo em{display:block;font-size:.34em;font-style:normal;color:#ffd36a;letter-spacing:.12em;margin-top:10px}
     .subtitle{font:clamp(11px,1.6vw,14px)/1.7 ui-monospace,monospace;color:#cfe3e6;margin:22px auto 26px;max-width:640px}
@@ -116,7 +116,7 @@
         <p class="eyebrow">ПИКСЕЛЬНОЕ ПРИКЛЮЧЕНИЕ + ФИЗИКА СПЛОШНЫХ СРЕД</p>
         <h1 class="logo">Crystal<span>Depths</span><em>FX Edition</em></h1>
         <p class="subtitle">Навье–Стокс для дыма и пара · SPH-слизь с когезией и адгезией ·
-          мягкие тела Верле · диффузионный свет · ассеты из диффузионной модели</p>
+          мягкие тела Верле · диффузионный свет · полностью процедурный пиксель-арт</p>
         <div class="menu-actions">
           <button class="pixel-btn" id="startBtn" type="button">НАЧАТЬ СПУСК</button>
           <button class="pixel-btn secondary" id="continueBtn" type="button">ПРОДОЛЖИТЬ</button>
@@ -136,9 +136,9 @@
       <p>Пройди <b>3 уровня</b>. Собирай осколки, чтобы открыть портал, разбивай киркой породу,
         подбирай кристаллы сил: двойной прыжок, усиленная кирка, щит.<br><br>
         <b>Новое:</b> дым и пар считаются уравнениями Навье–Стокса и реагируют на твой бег, удары и взрывы.
-        Слизни — мягкие тела; их слизь липнет к полу (адгезия) и тормозит. Кнопка <span class="kbd">S</span> —
-        бросок слизи: на ней можно скользить, а врагов она вязнет. Свет в пещерах распространяется
-        уравнением диффузии от факелов, кристаллов и взрывов.</p>
+        Слизни — мягкие тела; их слизь липнет к полу (адгезия) и тормозит, но упади на лужу с разбега —
+        она подбросит как батут. Кнопка <span class="kbd">S</span> — бросок слизи, густой дым гасит камни
+        стражей. Свет в пещерах распространяется уравнением диффузии от факелов, кристаллов и взрывов.</p>
       <button class="pixel-btn" id="closeHow" type="button">ПОНЯТНО</button>
     </div></div>
 

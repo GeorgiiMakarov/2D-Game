@@ -1,8 +1,8 @@
-"""Chroma-key + slice the diffusion-generated sprite sheets into game-ready PNGs.
+"""Chroma-key + slice sprite sheets into game-ready PNGs.
 
-The raw sheets in public/art were produced by a text-to-image diffusion model on a
-flat magenta backdrop; this script keys the backdrop out, splits the sheet into
-frames, trims them and downsamples to a pixel-art friendly height.
+Legacy: герой и слизни теперь рисуются полностью процедурно
+(src/render/hero.js, src/render/creatures.js, src/game/slime.js),
+поэтому обработка их листов отключена. Скрипт оставлен для истории.
 """
 import os
 import json
@@ -70,10 +70,4 @@ def process(name, src, target_h):
 
 
 if __name__ == '__main__':
-    manifest = {}
-    print('hero:')
-    manifest['hero'] = process('hero', 'hero_raw.png', 64)
-    print('slime:')
-    manifest['slime'] = process('slime', 'slime_raw.png', 40)
-    json.dump(manifest, open(os.path.join(OUT, 'generated.json'), 'w'), indent=1)
-    print(json.dumps(manifest, indent=1))
+    print('Герой, враги и слизни — процедурный пиксель-арт, листы больше не нужны.')

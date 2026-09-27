@@ -9,7 +9,7 @@ import {
 import { keys, on as onInput } from '../core/input.js';
 import { initAudio, sfx, setMusicContext, setSound } from '../core/audio.js';
 import { settings, saveSettings, saveProgress, loadProgress, clearProgress } from '../core/settings.js';
-import { LEVELS } from './levels.js';
+import { LEVELS, LEVEL_HINTS } from './levels.js';
 import { SlimeEnemy } from './slime.js';
 import { FluidSim } from '../physics/fluid.js';
 import { GooSystem } from '../physics/sph.js';
@@ -17,7 +17,8 @@ import { LightField } from '../physics/lighting.js';
 import { assets, loadAssets } from '../render/assets.js';
 import { drawBackground } from '../render/background.js';
 import { tile, crystal, torch, icon, iconURL } from '../render/pixelart.js';
-import { CREATURES, drawPig } from '../render/creatures.js';
+import { CREATURES, drawMole } from '../render/creatures.js';
+import { drawHero } from '../render/hero.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -46,6 +47,7 @@ export class Game {
     this.fluid = new FluidSim(10);
     this.light = new LightField(12);
     this.goo = new GooSystem(420);
+    this.effQuality = settings.quality;   // эффективное качество (авто-деградация)
     this.applyQuality();
 
     this.dom = {
@@ -61,7 +63,7 @@ export class Game {
 
   // ───────────────────────────── качество/настройки ─────────────────────────
   applyQuality() {
-    const q = settings.quality;
+    const q = this.effQuality ?? settings.quality;
     this.fluid.configure(Math.round(14 / q));
     this.light.configure(Math.round(16 / q));
     this.goo.max = Math.round(300 * q);
@@ -155,6 +157,7 @@ export class Game {
     qRow.querySelectorAll('button').forEach((b) => {
       b.onclick = () => {
         settings.quality = Number(b.dataset.q);
+        this.effQuality = settings.quality;
         saveSettings();
         this.applyQuality();
         sync();
@@ -231,7 +234,8 @@ export class Game {
     this.player = {
       x: 70, y: GROUND - 72, w: 32, h: 70, vx: 0, vy: 0, ground: false, dir: 1,
       hp, gems: 0, attack: 0, cool: 0, inv: 1, anim: 0, airJump: true,
-      shieldReady: this.abilities.shield, gooCool: 0, wall: 0, wet: 0,
+      shieldReady: this.abilities.shield, gooCool: 0, wall: 0, wallT: 0, wallSide: 0,
+      wet: 0, jumpBuf: 0, coyote: 0,
     };
     this.waters = L.waters.map((w) => ({ x: w[0], y: GROUND, w: w[1], h: H - GROUND }));
     this.platforms = L.platforms.map((p) => ({
@@ -262,7 +266,7 @@ export class Game {
   }
 
   makeEnemy(a) {
-    const dims = a[0] === 'enderman' ? [34, 86] : a[0] === 'skeleton' ? [32, 64] : [32, 58];
+    const dims = a[0] === 'wisp' ? [34, 86] : a[0] === 'golem' ? [32, 64] : [32, 58];
     return {
       type: a[0], x: a[1], y: a[2], w: dims[0], h: dims[1], vx: a[3],
       min: a[4], max: a[5], hp: a[6], hit: 0, shoot: 1.4 + Math.random(), slow: 0,
@@ -337,6 +341,7 @@ export class Game {
     this.dom.endModal.classList.add('hidden');
     this.dom.pauseModal.classList.add('hidden');
     this.last = performance.now();
+    setTimeout(() => this.showToast(LEVEL_HINTS[levelIndex] || ''), 700);
   }
 
   toMenu() {
@@ -479,36 +484,45 @@ export class Game {
 
     // липкость под ногами замедляет героя (адгезия слизи)
     const sticky = settings.goo ? this.goo.stickiness(p.x + p.w / 2, p.y + p.h, 30) : 0;
-    const accel = (p.ground ? PLAYER_ACCEL_GROUND : PLAYER_ACCEL_AIR) * (1 - 0.45 * sticky);
-    const maxSpeed = (this.abilities.jump ? PLAYER_SPEED_BOOST : PLAYER_SPEED) * (1 - 0.4 * sticky);
+    const accel = (p.ground ? PLAYER_ACCEL_GROUND : PLAYER_ACCEL_AIR) * (1 - 0.3 * sticky);
+    const maxSpeed = (this.abilities.jump ? PLAYER_SPEED_BOOST : PLAYER_SPEED) * (1 - 0.25 * sticky);
 
     if (keys.left) { p.vx -= accel * dt; p.dir = -1; }
     if (keys.right) { p.vx += accel * dt; p.dir = 1; }
     if (!keys.left && !keys.right) p.vx *= Math.pow(p.ground ? 0.0008 : 0.08, dt);
     p.vx = clamp(p.vx, -maxSpeed, maxSpeed);
 
-    if (keys.jump) {
-      if (p.ground) {
+    // буфер прыжка + койот-тайм: управление прощает неточность на 0.1 с
+    p.jumpBuf = Math.max(0, p.jumpBuf - dt);
+    p.coyote = Math.max(0, p.coyote - dt);
+    if (keys.jump) { p.jumpBuf = 0.12; keys.jump = false; }
+
+    if (p.jumpBuf > 0) {
+      if (p.ground || p.coyote > 0) {
         p.vy = JUMP_V * (1 - 0.18 * sticky);
         p.ground = false;
+        p.coyote = 0;
+        p.jumpBuf = 0;
         p.airJump = true;
         sfx('jump');
         this.dust(p.x + 16, p.y + p.h, '#9eb3ad', 6, 'chip');
         if (settings.fluid) this.fluid.addVelocity(p.x + 16 - this.camera, p.y + p.h, 0, 140, 2);
-      } else if (p.wall > 0) {            // прыжок от стены по слизи (адгезия)
+      } else if (p.wallT > 0) {            // прыжок от стены по слизи (адгезия)
         p.vy = JUMP_V * 0.92;
         p.vx = p.wall * 210;
         p.wall = 0;
+        p.wallT = 0;
+        p.jumpBuf = 0;
         sfx('stick');
         if (settings.goo) this.goo.splat(p.x + 16, p.y + 30, 4, 60);
       } else if (this.abilities.jump && p.airJump) {
         p.vy = DOUBLE_JUMP_V;
         p.airJump = false;
+        p.jumpBuf = 0;
         sfx('jump');
         this.gemBurst(p.x + 16, p.y + p.h, '#65ead8');
       }
     }
-    keys.jump = false;
 
     if (keys.goo && p.gooCool <= 0 && settings.goo) {
       p.gooCool = 0.55;
@@ -559,7 +573,7 @@ export class Game {
           this.impactBurst(e.x + 16, e.y + 24, this.abilities.power ? '#ffc85c' : '#8bd26b', strongHit);
           if (e.hp <= 0) {
             sfx('enemy');
-            if (e.type === 'creeper') this.explode(e.x + 16, e.y + 30);
+            if (e.type === 'mite') this.explode(e.x + 16, e.y + 30);
             else this.gemBurst(e.x + 16, e.y + 24, '#8bd26b');
           }
         }
@@ -591,7 +605,8 @@ export class Game {
     const oldY = p.y;
     p.x += p.vx * dt;
     p.x = clamp(p.x, 0, WORLD - p.w);
-    p.wall = Math.max(0, p.wall - dt);
+    p.wallT = Math.max(0, p.wallT - dt);
+    if (p.wallT <= 0) p.wall = 0;
     for (const r of this.rocks) {
       if (r.hp > 0 && this.rects(p, r)) {
         if (p.vx > 0) { p.x = r.x - p.w; p.wallSide = 1; }
@@ -599,13 +614,22 @@ export class Game {
         p.vx = 0;
         // если на стене есть слизь — герой прилипает и медленно сползает
         if (settings.goo && !p.ground && this.goo.stickiness(p.x + p.w / 2, p.y + 30, 34) > 0.18) {
-          p.wall = -Math.sign(p.wallSide || 1);
+          p.wall = -(p.wallSide || 1);
+          p.wallT = 0.28;
           p.vy = Math.min(p.vy, 42);
           p.airJump = true;
         }
       }
     }
     p.y += p.vy * dt;
+    // батут из слизи: жёсткое падение на липкую лужу подбрасывает вверх
+    if (p.vy > 300 && settings.goo && this.goo.stickiness(p.x + p.w / 2, p.y + p.h + 4, 30) > 0.4) {
+      p.vy = -Math.min(660, 400 + p.vy * 0.4);
+      p.airJump = true;
+      sfx('stick');
+      this.dust(p.x + 16, p.y + p.h, '#5ff2d6', 10, 'chip', 1.3);
+      if (settings.fluid) this.fluid.addVelocity(p.x + 16 - this.camera, p.y + p.h, 0, -160, 2);
+    }
     p.ground = false;
     const landSpeed = p.vy;
     for (const pl of this.platforms) {
@@ -613,6 +637,7 @@ export class Game {
         p.y = pl.y - p.h;
         p.vy = 0;
         p.ground = true;
+        p.coyote = 0.09;
         p.airJump = true;
       }
     }
@@ -621,6 +646,7 @@ export class Game {
         p.y = r.y - p.h;
         p.vy = 0;
         p.ground = true;
+        p.coyote = 0.09;
         p.airJump = true;
       }
     }
@@ -702,7 +728,7 @@ export class Game {
         e.vx *= -1;
         e.x = clamp(e.x, e.min, e.max);
       }
-      if (e.type === 'skeleton') {
+      if (e.type === 'golem') {
         e.shoot -= dt;
         if (e.shoot <= 0 && Math.abs(p.x - e.x) < 500) {
           e.shoot = Math.max(1.25, 2.25 - this.levelIndex * 0.35);
@@ -734,9 +760,15 @@ export class Game {
       this.slimes = this.slimes.filter((s) => !s.dead);
     }
 
-    // ── стрелы и частицы
+    // ── камни стража и частицы
     for (const a of this.arrows) {
       a.x += a.vx * dt;
+      // густой дым гасит летящий камень — дым как укрытие
+      if (settings.fluid && this.fluid.densityAt(a.x - this.camera, a.y) > 0.55) {
+        a.dead = true;
+        this.dust(a.x, a.y, '#9aa4a8', 6, 'chip', 0.7);
+        continue;
+      }
       if (this.rects(p, a)) { this.hurt(a.x); a.dead = true; }
     }
     this.arrows = this.arrows.filter((a) => !a.dead && a.x > this.camera - 100 && a.x < this.camera + W + 100);
@@ -769,7 +801,7 @@ export class Game {
             this.loadLevel(next, true);
             this.state = 'playing';
             setMusicContext(next, 'play');
-            this.showToast(`УРОВЕНЬ ${next + 1}: ${LEVELS[next].name}`);
+            this.showToast(`УРОВЕНЬ ${next + 1}: ${LEVELS[next].name} — ${LEVEL_HINTS[next] || ''}`);
           });
           return;
         }
@@ -904,13 +936,15 @@ export class Game {
     if (settings.goo) this.goo.render(ctx, this.camera, W, H);
 
     this.drawPortal();
-    if (this.pig) this.drawPigEntity();
+    if (this.pig) this.drawMoleEntity();
     this.arrows.forEach((a) => {
-      this.px(a.x - this.camera, a.y, a.w, a.h, '#d9d1a8');
-      this.px(a.x - this.camera + (a.vx > 0 ? a.w : 0), a.y - 3, 4, 11, '#7a6644');
+      const ax = a.x - this.camera;
+      this.px(ax, a.y, a.w, a.h, '#8a99a1');
+      this.px(ax + 3, a.y - 3, a.w - 8, 3, '#aeb9c0');
+      this.px(ax + 2, a.y + 2, 4, 2, '#5c6a72');
     });
     this.enemies.forEach((e) => this.drawEnemy(e));
-    if (settings.softbody) this.slimes.forEach((s) => s.draw(ctx, this.camera, this.time, assets.slime));
+    if (settings.softbody) this.slimes.forEach((s) => s.draw(ctx, this.camera, this.time));
     if (this.player && this.state !== 'menu') this.drawPlayer();
     this.particles.forEach((q) => this.drawParticle(q));
 
@@ -1030,16 +1064,16 @@ export class Game {
     if (e.hit > 0) ctx.globalAlpha = 0.5;
     ctx.translate(Math.round(x), Math.round(e.y));
     if (e.vx < 0) { ctx.translate(e.w, 0); ctx.scale(-1, 1); }
-    (CREATURES[e.type] || CREATURES.zombie)(ctx, e.w, e.h, this.time + e.x);
+    (CREATURES[e.type] || CREATURES.shroomer)(ctx, e.w, e.h, this.time + e.x);
     ctx.restore();
   }
 
-  drawPigEntity() {
+  drawMoleEntity() {
     const ctx = this.ctx;
     ctx.save();
     ctx.translate(Math.round(this.pig.x - this.camera), Math.round(this.pig.y));
     if (this.pig.dir < 0) { ctx.translate(this.pig.w, 0); ctx.scale(-1, 1); }
-    drawPig(ctx, this.pig.w, this.pig.h);
+    drawMole(ctx, this.pig.w, this.pig.h, this.time);
     ctx.restore();
   }
 
@@ -1049,8 +1083,10 @@ export class Game {
     const x = p.x - this.camera;
     const bob = p.ground ? Math.sin(p.anim) * 1.5 : 0;
     const moving = Math.abs(p.vx) > 18;
-    const frames = assets.hero;
-    const img = frames.length ? frames[moving ? 1 + (Math.floor(p.anim * 1.35) % (frames.length - 1)) : 0] : null;
+    let frame;
+    if (!p.ground) frame = 'jump';
+    else if (moving) frame = 'walk' + (Math.floor(p.anim * 1.6) % 4);
+    else frame = 'idle' + (Math.floor(this.time * 1.6) % 2);
     ctx.save();
     if (p.inv > 0 && Math.floor(p.inv * 12) % 2) ctx.globalAlpha = 0.35;
     if (this.abilities.shield && p.shieldReady) {
@@ -1060,21 +1096,28 @@ export class Game {
       ctx.strokeRect(Math.round(x - 10), Math.round(p.y - 7), 52, 84);
       ctx.globalAlpha = 1;
     }
-    if (img) {
-      const h = 80;
-      const w = (img.width / img.height) * h;
-      ctx.save();
-      if (p.dir < 0) {
-        ctx.translate(Math.round(x + p.w / 2 + w / 2), Math.round(p.y + p.h - h + bob));
-        ctx.scale(-1, 1);
-        ctx.drawImage(img, 0, 0, w, h);
-      } else {
-        ctx.drawImage(img, Math.round(x + p.w / 2 - w / 2), Math.round(p.y + p.h - h + bob), w, h);
-      }
-      ctx.restore();
+    // мягкая rim-подсветка: герой отделяется от тёмного фона
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = 0.16;
+    const glow = ctx.createRadialGradient(x + p.w / 2, p.y + 36, 4, x + p.w / 2, p.y + 36, 52);
+    glow.addColorStop(0, '#7bf1df');
+    glow.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(x - 40, p.y - 20, p.w + 80, 120);
+    ctx.restore();
+    const h = 80;
+    const w = (26 / 38) * h;
+    ctx.save();
+    if (p.dir < 0) {
+      ctx.translate(Math.round(x + p.w / 2 + w / 2), Math.round(p.y + p.h - h + bob));
+      ctx.scale(-1, 1);
+      drawHero(ctx, w, h, frame);
     } else {
-      this.px(x, p.y, p.w, p.h, '#2f8f86');
+      ctx.translate(Math.round(x + p.w / 2 - w / 2), Math.round(p.y + p.h - h + bob));
+      drawHero(ctx, w, h, frame);
     }
+    ctx.restore();
     if (p.attack > 0) {
       ctx.translate(Math.round(x + p.w / 2 + p.dir * 19), Math.round(p.y + 32));
       ctx.scale(p.dir, 1);
@@ -1193,9 +1236,31 @@ export class Game {
       `Свет ${this.light.nx - 2}×${this.light.ny - 2} (${settings.lighting ? 'вкл' : 'выкл'})`,
       `SPH-частиц ${this.goo.count}/${this.goo.max}`,
       `Мягких тел ${this.slimes.length}, частиц ${this.particles.length}`,
-      `Камера ${this.camera.toFixed(0)} px   качество ×${settings.quality}`,
+      `Камера ${this.camera.toFixed(0)} px   качество ×${this.effQuality ?? settings.quality}`,
     ];
     this.dom.diag.textContent = lines.join('\n');
+  }
+
+  /** Автодеградация: при просадке FPS упрощает симуляции, при запасе — возвращает. */
+  autoQuality(dt) {
+    if (this.state !== 'playing') return;
+    if (this.fps < 45 && this.effQuality > 0.6) {
+      this.qLowT = (this.qLowT || 0) + dt;
+      if (this.qLowT > 2.5) {
+        this.qLowT = 0;
+        this.effQuality = this.effQuality > 1 ? 1 : 0.6;
+        this.applyQuality();
+        this.showToast('АВТО-КАЧЕСТВО: СИМУЛЯЦИЯ УПРОЩЕНА');
+      }
+    } else this.qLowT = 0;
+    if (this.fps > 57 && this.effQuality < settings.quality) {
+      this.qHighT = (this.qHighT || 0) + dt;
+      if (this.qHighT > 6) {
+        this.qHighT = 0;
+        this.effQuality = Math.min(settings.quality, this.effQuality >= 1 ? 1.5 : 1);
+        this.applyQuality();
+      }
+    } else this.qHighT = 0;
   }
 
   // ───────────────────────────── цикл ───────────────────────────────────────
@@ -1204,6 +1269,7 @@ export class Game {
     this.last = now;
     this.fps = this.fps * 0.92 + (1 / Math.max(dt, 1e-4)) * 0.08;
     if (this.state === 'menu') this.time += dt;
+    this.autoQuality(dt);
     this.update(dt);
     this.render();
     requestAnimationFrame(this.loop);

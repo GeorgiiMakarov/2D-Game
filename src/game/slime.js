@@ -48,7 +48,7 @@ export class SlimeEnemy {
     return this.dead;
   }
 
-  draw(ctx, camera, time, sprite) {
+  draw(ctx, camera, time) {
     if (this.dead) return;
     const b = this.body;
     ctx.save();
@@ -67,17 +67,19 @@ export class SlimeEnemy {
     ctx.stroke();
     ctx.globalAlpha = 1;
 
-    // ядро-спрайт (из диффузионной модели) внутри желе
-    if (sprite && sprite.width) {
-      const w = this.r * 1.4;
-      const h = (sprite.height / sprite.width) * w;
-      ctx.globalAlpha = 0.75;
-      ctx.drawImage(sprite, cx - camera - w / 2, cy - h / 2 + 2, w, h);
-      ctx.globalAlpha = 1;
+    // глаза ядра — процедурные, без внешних спрайтов
+    const blink = (time * 1.3 + this.r) % 3.7 < 0.12;
+    const ex = cx - camera, ey = cy - 2;
+    ctx.fillStyle = '#062a2c';
+    if (blink) {
+      ctx.fillRect(ex - 7, ey, 5, 2);
+      ctx.fillRect(ex + 2, ey, 5, 2);
     } else {
-      ctx.fillStyle = '#062a2c';
-      ctx.fillRect(cx - camera - 7, cy - 4, 4, 5);
-      ctx.fillRect(cx - camera + 3, cy - 4, 4, 5);
+      ctx.fillRect(ex - 7, ey - 3, 5, 6);
+      ctx.fillRect(ex + 2, ey - 3, 5, 6);
+      ctx.fillStyle = '#d7fff7';
+      ctx.fillRect(ex - 6, ey - 2, 2, 2);
+      ctx.fillRect(ex + 3, ey - 2, 2, 2);
     }
     ctx.restore();
   }
