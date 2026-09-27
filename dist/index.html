@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#0d1720" />
+  <link rel="icon" href="data:," />
+  <title>Crystal Depths FX — 2D + физика сплошных сред</title>
+  <style>
+    *{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;overflow:hidden;background:#05090d;color:#f5f1dc;font-family:'Russo One',system-ui,-apple-system,Segoe UI,sans-serif}
+    body{min-height:100dvh;display:grid;place-items:center;background:#0a141f;touch-action:none;overscroll-behavior:none}
+    .game-shell{position:relative;width:min(100vw,1180px);height:min(100dvh,760px);min-height:420px;overflow:hidden;background:#04080c;box-shadow:0 0 0 1px #172b3a,0 30px 90px #0009;isolation:isolate}
+    canvas{position:absolute;inset:0;width:100%;height:100%;display:block;image-rendering:pixelated;background:#04080c}
+    .screen{position:absolute;inset:0;display:grid;place-items:center;padding:clamp(18px,4vw,54px);background:linear-gradient(#0b2740c9,#04090ded);transition:opacity .42s ease,filter .42s ease;z-index:10}
+    .screen.hidden{opacity:0;filter:brightness(.55);pointer-events:none}
+    .menu-card{width:min(820px,100%);text-align:center;filter:drop-shadow(0 8px 0 #0008)}
+    .eyebrow{font:10px/1.5 ui-monospace,monospace;color:#66dfd1;letter-spacing:.24em;margin:0 0 18px}
+    .logo{font:clamp(40px,8vw,88px)/.84 'Russo One',system-ui,sans-serif;text-transform:uppercase;letter-spacing:-.045em;margin:0;text-shadow:0 5px 0 #213c49,0 10px 0 #0b141a}
+    .logo span{display:block;color:#7bf1df}
+    .logo em{display:block;font-size:.34em;font-style:normal;color:#ffd36a;letter-spacing:.12em;margin-top:10px}
+    .subtitle{font:clamp(11px,1.6vw,14px)/1.7 ui-monospace,monospace;color:#cfe3e6;margin:22px auto 26px;max-width:640px}
+    .menu-actions{display:flex;flex-direction:column;align-items:center;gap:11px}
+    .pixel-btn{min-width:min(330px,90vw);border:0;border-bottom:6px solid #19695f;background:#43cbb9;color:#071814;padding:16px 24px;font:14px/1 ui-monospace,monospace;font-weight:700;cursor:pointer;clip-path:polygon(7px 0,calc(100% - 7px) 0,100% 7px,100% calc(100% - 7px),calc(100% - 7px) 100%,7px 100%,0 calc(100% - 7px),0 7px);transition:transform .08s,filter .12s}
+    .pixel-btn:hover{filter:brightness(1.12)}
+    .pixel-btn:active{transform:translateY(4px);border-bottom-width:2px}
+    .pixel-btn.secondary{background:#263b48;color:#dce7e4;border-bottom-color:#111c23;font-size:11px;padding:13px}
+    .menu-note{margin:22px auto 0;max-width:640px;font:10px/1.9 ui-monospace,monospace;color:#9bb1bc}
+    .menu-note b{color:#fff}
+    .kbd{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 5px;background:#e8e6d9;color:#13232c;border-bottom:3px solid #8c9aa0;font:10px ui-monospace,monospace;margin:0 2px}
+    .hud{position:absolute;z-index:5;left:0;right:0;top:0;display:flex;justify-content:space-between;align-items:flex-start;padding:max(12px,env(safe-area-inset-top)) 14px 10px;pointer-events:none;text-shadow:2px 2px 0 #101820}
+    .hud.hidden{display:none}
+    .stat-group{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .stat{background:#12293fd9;border:3px solid #d8ecf4;padding:7px 9px;font:10px/1 ui-monospace,monospace;box-shadow:0 4px 0 #16222c,3px 0 0 #16222c}
+    .stat .cyan{color:#b9fff4}.stat .gold{color:#ffe466}.stat .violet{color:#df9cff}
+    .hearts{display:flex;align-items:center;gap:3px;min-height:24px}
+    .heart-icon{width:24px;height:24px;image-rendering:pixelated}
+    .ability-strip{display:flex;gap:5px}
+    .ability{min-width:30px;padding:5px 7px;border:3px solid #46606c;background:#102631;color:#6f8188;font:8px/1 ui-monospace,monospace;display:flex;align-items:center;gap:5px}
+    .ability img{width:18px;height:22px;image-rendering:pixelated;filter:grayscale(1);opacity:.4}
+    .ability.on img{filter:none;opacity:1}
+    .ability.on{border-color:#d8ecf4;color:#fff}
+    .ability.jump.on{background:#177b73}.ability.power.on{background:#9d641e}.ability.shield.on{background:#713a85}
+    .top-right{display:flex;gap:8px;align-items:flex-start;pointer-events:auto}
+    .icon-btn{background:#12293fd9;border:3px solid #d8ecf4;color:#fff;height:38px;padding:0 10px;font:9px/1 ui-monospace,monospace;cursor:pointer;box-shadow:0 4px 0 #16222c}
+    .icon-btn:active{transform:translateY(3px);box-shadow:0 1px 0 #16222c}
+    .toast{position:absolute;z-index:6;left:50%;top:74px;transform:translate(-50%,-12px);opacity:0;background:#050e14e8;border:2px solid #54cdbf;padding:11px 18px;font:10px/1.5 ui-monospace,monospace;text-align:center;pointer-events:none;transition:opacity .2s,transform .2s}
+    .toast.show{opacity:1;transform:translate(-50%,0)}
+    .scene-fade{position:absolute;z-index:29;inset:0;background:#03080b;opacity:0;pointer-events:none;transition:opacity .24s ease}
+    .scene-fade.active{opacity:1}
+    .impact-flash{position:absolute;z-index:8;inset:0;background:#fff;opacity:0;pointer-events:none;mix-blend-mode:screen;transition:opacity .08s}
+    .impact-flash.on{opacity:.22}
+    .touch{position:absolute;inset:auto 0 max(12px,env(safe-area-inset-bottom)) 0;z-index:7;display:none;justify-content:space-between;align-items:end;padding:0 18px;pointer-events:none}
+    .touch-cluster{display:flex;gap:10px;align-items:end}
+    .touch button{pointer-events:auto;border:2px solid #7ca0aa;background:#0d1c24cc;color:#fff;width:58px;height:58px;border-radius:10px;font:16px ui-monospace,monospace;box-shadow:0 5px 0 #02080b;user-select:none;-webkit-user-select:none}
+    .touch button:active,.touch button.active{transform:translateY(4px);box-shadow:0 1px 0 #02080b;background:#1f756c}
+    .touch .action{width:66px;height:66px;border-color:#f0c258;color:#ffd15c}
+    .touch .jump{border-color:#63d8cb;color:#70e9dc}
+    .modal{position:absolute;z-index:20;inset:0;display:grid;place-items:center;padding:18px;background:#03080bd9;animation:modalFade .24s ease}
+    .modal.hidden{display:none}
+    .panel{width:min(620px,100%);max-height:92%;overflow:auto;background:#0e1f2a;border:4px solid #54717d;padding:clamp(20px,4vw,34px);box-shadow:0 10px 0 #020507;text-align:center;animation:panelIn .24s ease}
+    @keyframes modalFade{from{opacity:0}to{opacity:1}}
+    @keyframes panelIn{from{transform:translateY(14px) scale(.97)}to{transform:none}}
+    .panel h2{margin:0 0 16px;font:clamp(18px,4vw,28px)/1.25 ui-monospace,monospace;color:#70e9dc}
+    .panel p{font:11px/1.9 ui-monospace,monospace;color:#cad8d8;margin:0 0 20px}
+    .panel .scoreline{color:#ffd15c}
+    .panel .pixel-btn{min-width:min(300px,100%)}
+    .opt-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 10px;border:2px solid #2c4756;margin-bottom:8px;font:10px/1.4 ui-monospace,monospace;color:#cfe3e6;text-align:left}
+    .opt-row small{display:block;color:#7d95a1;font-size:9px;margin-top:4px}
+    .switch{flex:0 0 auto;min-width:74px;padding:8px 10px;border:2px solid #46606c;background:#102631;color:#6f8188;font:9px ui-monospace,monospace;cursor:pointer}
+    .switch.on{background:#177b73;border-color:#7bf1df;color:#eafffb}
+    .quality{display:flex;gap:6px}
+    .quality button{padding:8px 10px;border:2px solid #46606c;background:#102631;color:#8ba0aa;font:9px ui-monospace,monospace;cursor:pointer}
+    .quality button.on{background:#9d641e;border-color:#ffd36a;color:#fff}
+    .diag{position:absolute;z-index:9;left:12px;bottom:12px;font:9px/1.5 ui-monospace,monospace;color:#8ff2e2;background:#040c11b3;border:1px solid #1d4450;padding:7px 9px;pointer-events:none;white-space:pre}
+    .diag.hidden{display:none}
+    @media (pointer:coarse),(max-width:760px){
+      .touch{display:flex}.game-shell{width:100vw;height:100dvh;min-height:360px;box-shadow:none}
+      .menu-note.desktop{display:none}.stat{font-size:7px;padding:6px}
+      .ability{min-width:26px;padding:5px;font-size:7px}.ability .ability-name{display:none}
+      .logo{font-size:clamp(38px,12vw,64px)}
+    }
+    @media (prefers-reduced-motion:reduce){*{transition:none!important}.scene-fade{display:none}}
+  </style>
+  <script type="module" crossorigin src="/assets/index-DHBR6UWF.js"></script>
+</head>
+<body>
+  <main class="game-shell" aria-label="Crystal Depths FX">
+    <canvas id="game" width="960" height="540" aria-label="Игровой мир"></canvas>
+    <div class="impact-flash" id="impactFlash" aria-hidden="true"></div>
+    <div class="scene-fade" id="sceneFade" aria-hidden="true"></div>
+
+    <div class="hud hidden" id="hud">
+      <div class="stat-group">
+        <div class="stat" aria-label="Здоровье"><span class="hearts" id="hearts"></span></div>
+        <div class="stat"><span class="cyan">ОСКОЛКИ</span> <span id="gems">0/6</span></div>
+        <div class="stat"><span class="gold">УРОВЕНЬ</span> <span id="level">1/3</span></div>
+        <div class="stat"><span class="violet">КИРКА</span> <span id="pick">ГОТОВА</span></div>
+        <div class="ability-strip">
+          <div class="ability jump" id="abilityJump"><img id="iconJump" alt=""><span class="ability-name">ПРЫЖОК</span></div>
+          <div class="ability power" id="abilityPower"><img id="iconPower" alt=""><span class="ability-name">СИЛА</span></div>
+          <div class="ability shield" id="abilityShield"><img id="iconShield" alt=""><span class="ability-name">ЩИТ</span></div>
+        </div>
+      </div>
+      <div class="top-right">
+        <button class="icon-btn" id="soundBtn" type="button" aria-pressed="true">ЗВУК: ВКЛ</button>
+        <button class="icon-btn" id="fxBtn" type="button">ФИЗИКА</button>
+        <button class="icon-btn" id="pauseBtn" type="button" aria-label="Пауза">II</button>
+      </div>
+    </div>
+
+    <div class="diag hidden" id="diag"></div>
+    <div class="toast" id="toast"></div>
+
+    <section class="screen" id="menu">
+      <div class="menu-card">
+        <p class="eyebrow">ПИКСЕЛЬНОЕ ПРИКЛЮЧЕНИЕ + ФИЗИКА СПЛОШНЫХ СРЕД</p>
+        <h1 class="logo">Crystal<span>Depths</span><em>FX Edition</em></h1>
+        <p class="subtitle">Навье–Стокс для дыма и пара · SPH-слизь с когезией и адгезией ·
+          мягкие тела Верле · диффузионный свет · ассеты из диффузионной модели</p>
+        <div class="menu-actions">
+          <button class="pixel-btn" id="startBtn" type="button">НАЧАТЬ СПУСК</button>
+          <button class="pixel-btn secondary" id="continueBtn" type="button">ПРОДОЛЖИТЬ</button>
+          <button class="pixel-btn secondary" id="howBtn" type="button">КАК ИГРАТЬ</button>
+          <button class="pixel-btn secondary" id="settingsBtn" type="button">ФИЗИКА И ГРАФИКА</button>
+        </div>
+        <p class="menu-note desktop">
+          <span class="kbd">A</span><span class="kbd">D</span> ходьба ·
+          <span class="kbd">Space</span> прыжок · <span class="kbd">X</span> кирка ·
+          <span class="kbd">S</span> слизь · <span class="kbd">F3</span> метрики · <span class="kbd">Esc</span> пауза
+        </p>
+      </div>
+    </section>
+
+    <div class="modal hidden" id="howModal"><div class="panel">
+      <h2>КАК ИГРАТЬ</h2>
+      <p>Пройди <b>3 уровня</b>. Собирай осколки, чтобы открыть портал, разбивай киркой породу,
+        подбирай кристаллы сил: двойной прыжок, усиленная кирка, щит.<br><br>
+        <b>Новое:</b> дым и пар считаются уравнениями Навье–Стокса и реагируют на твой бег, удары и взрывы.
+        Слизни — мягкие тела; их слизь липнет к полу (адгезия) и тормозит. Кнопка <span class="kbd">S</span> —
+        бросок слизи: на ней можно скользить, а врагов она вязнет. Свет в пещерах распространяется
+        уравнением диффузии от факелов, кристаллов и взрывов.</p>
+      <button class="pixel-btn" id="closeHow" type="button">ПОНЯТНО</button>
+    </div></div>
+
+    <div class="modal hidden" id="settingsModal" style="z-index:22"><div class="panel">
+      <h2>ФИЗИКА И ГРАФИКА</h2>
+      <div id="optList"></div>
+      <div class="opt-row">КАЧЕСТВО СИМУЛЯЦИИ
+        <div class="quality" id="qualityRow">
+          <button data-q="0.6" type="button">НИЗКОЕ</button>
+          <button data-q="1" type="button">СРЕДНЕЕ</button>
+          <button data-q="1.5" type="button">ВЫСОКОЕ</button>
+        </div>
+      </div>
+      <button class="pixel-btn" id="closeSettings" type="button">ЗАКРЫТЬ</button>
+    </div></div>
+
+    <div class="modal hidden" id="pauseModal"><div class="panel">
+      <h2>ПАУЗА</h2>
+      <p>Шахта никуда не денется.</p>
+      <button class="pixel-btn" id="resumeBtn" type="button">ПРОДОЛЖИТЬ</button>
+      <button class="pixel-btn secondary" id="pauseSettingsBtn" type="button">ФИЗИКА И ГРАФИКА</button>
+      <button class="pixel-btn secondary" id="toMenuBtn" type="button">В МЕНЮ</button>
+    </div></div>
+
+    <div class="modal hidden" id="endModal"><div class="panel">
+      <h2 id="endTitle">ПОБЕДА!</h2>
+      <p id="endText"></p>
+      <button class="pixel-btn" id="againBtn" type="button">ЕЩЁ РАЗ</button>
+    </div></div>
+
+    <div class="touch" id="touchControls">
+      <div class="touch-cluster">
+        <button data-key="left" aria-label="Влево">◀</button>
+        <button data-key="right" aria-label="Вправо">▶</button>
+      </div>
+      <div class="touch-cluster">
+        <button data-key="goo" class="action" aria-label="Слизь">S</button>
+        <button data-key="attack" class="action" aria-label="Удар">⛏</button>
+        <button data-key="jump" class="jump" aria-label="Прыжок">▲</button>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

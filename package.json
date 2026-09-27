@@ -1,0 +1,15 @@
+{
+  "name": "crystal-depths-fx",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Crystal Depths FX — 2D платформер с симуляцией Навье–Стокса, SPH-адгезией, мягкими телами и диффузионным светом",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0"
+  },
+  "devDependencies": {
+    "vite": "^5.4.10"
+  }
+}
