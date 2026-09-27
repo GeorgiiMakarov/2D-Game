@@ -1,5 +1,6 @@
-# Автодеплой Crystal Depths FX на GitHub Pages при пуше в ветку crystal-depths-fx.
-name: Deploy FX to GitHub Pages
+# Деплой оригинальной версии игры (2d-game.html от 12.09) на GitHub Pages.
+# FX-исходники остаются в ветке и истории, но больше не собираются и не деплоятся.
+name: Deploy original game to GitHub Pages
 on:
   push:
     branches: [crystal-depths-fx]
@@ -16,14 +17,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - run: npm ci
-      - run: npm run build -- --base=/${{ github.event.repository.name }}/
+      - run: mkdir -p site && cp index.html site/index.html
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: site
   deploy:
     needs: build
     runs-on: ubuntu-latest
