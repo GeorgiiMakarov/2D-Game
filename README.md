@@ -1,5 +1,7 @@
 # Crystal Depths — 2D Pixel-Art Platformer
 
+**[▶ Играть / Play now](https://georgiimakarov.github.io/2D-Game/)** — play instantly in the browser, no download needed.
+
 A complete browser 2D platformer in SNES pixel-art style: explore crystal caverns,
 collect gems, smash obstacles with your pickaxe, fight creepers, zombies, skeletons
 and endermen, and escape through the portal.
