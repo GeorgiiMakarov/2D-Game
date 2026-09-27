@@ -1,8 +1,8 @@
-# Автодеплой собранной игры на GitHub Pages при пуше в main.
-name: Deploy to GitHub Pages
+# Автодеплой Crystal Depths FX на GitHub Pages при пуше в ветку crystal-depths-fx.
+name: Deploy FX to GitHub Pages
 on:
   push:
-    branches: [main]
+    branches: [crystal-depths-fx]
   workflow_dispatch:
 permissions:
   contents: read
